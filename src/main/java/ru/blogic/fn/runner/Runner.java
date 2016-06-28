@@ -17,7 +17,7 @@ public class Runner {
 
     public static void main(String... args){
         Runner runner = new Runner();
-        new JCommander(runner, args);
+        JCommander jCommander = new JCommander(runner, args);
 
         if(runner.executeUtitityName ==null){
             runner.executeUtitityName="counter";
@@ -37,7 +37,9 @@ public class Runner {
                 FnBulkUpdater.main(args);
                 break;
             default:
-                System.out.println("Permitted values for parametr -ut deleter, counter(or empty), bulkUpdater ");
+                jCommander.setProgramName("FNCmUtils");
+                jCommander.usage();
+               // System.out.println("Permitted values for parametr -ut deleter, counter(or empty), bulkUpdater ");
         }
     }
 }
