@@ -11,7 +11,7 @@
 
 
     <properties>
-        <jdk.version>1.7</jdk.version>
+        <jdk.version>1.6</jdk.version>
     </properties>
 
     <repositories>
@@ -72,6 +72,20 @@
             <version>1.3.1</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.beust</groupId>
+            <artifactId>jcommander</artifactId>
+            <version>1.48</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.reflections/reflections -->
+        <dependency>
+            <groupId>org.reflections</groupId>
+            <artifactId>reflections</artifactId>
+            <version>0.9.10</version>
+        </dependency>
+
+
 
     </dependencies>
 
@@ -115,11 +129,11 @@
                                     </excludes>
                                 </filter>
                             </filters>
-                            <minimizeJar>true</minimizeJar>
+
                             <transformers>
                                 <!-- add Main-Class to manifest file -->
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>ru.blogic.fn.util.FnBulkUpdater</mainClass>
+                                    <mainClass>ru.blogic.fn.runner.Runner</mainClass>
                                     <!--<ClassPath></ClassPath>-->
                                 </transformer>
                             </transformers>

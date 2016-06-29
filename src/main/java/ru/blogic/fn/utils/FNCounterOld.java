@@ -1,4 +1,4 @@
-package ru.blogic.fn.util;
+package ru.blogic.fn.utils;
 
 import com.filenet.api.collection.IndependentObjectSet;
 import com.filenet.api.core.Connection;
