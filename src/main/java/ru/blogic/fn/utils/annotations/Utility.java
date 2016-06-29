@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
 @Retention(value= RetentionPolicy.RUNTIME)
 public @interface Utility {
     /**
-     * what method name must be in -ut parameter for execute this utility.
+     * what method name must be in -ut parameter for execute this utility. Will be used only this value if defined
      * @return String method name. By default return "" value  - use class name for method name.
      */
     String value() default "";
