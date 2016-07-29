@@ -1,4 +1,4 @@
-package ru.blogic.fn.util;
+package ru.blogic.fn.utils;
 
 import com.filenet.api.core.IndependentlyPersistableObject;
 import com.filenet.api.core.UpdatingBatch;
@@ -11,6 +11,7 @@ import java.util.Map;
 /**
  * Created by pkupershteyn on 07.06.2016.
  */
+
 public class FnBulkUpdater extends FnSelectExecutor {
 
     protected static final CmParameter PARM_FIELDVALUES = new CmParameter("fieldValues", "v", true, "Field values to update, 'field1=value,filed2=value ...'", true, null);

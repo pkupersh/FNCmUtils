@@ -1,27 +1,19 @@
-package ru.blogic.fn.util;
+package ru.blogic.fn.utils;
 
 import com.filenet.api.core.Connection;
 import com.filenet.api.core.Domain;
 import com.filenet.api.core.Factory;
 import com.filenet.api.core.ObjectStore;
 import com.filenet.api.util.UserContext;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
+import org.apache.commons.cli.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by pkupershteyn on 03.06.2016.
  */
 public abstract class FnExecutor {
+
     private List<CmParameter> cmParameters;
 
     static private final CommandLineParser PARSER = new DefaultParser();
@@ -33,9 +25,10 @@ public abstract class FnExecutor {
 
     public static class InvalidParametersException extends Exception {
         private CmParameter cmParameter;
+
         public InvalidParametersException(CmParameter parameter, String message) {
             super(message);
-            cmParameter=parameter;
+            cmParameter = parameter;
         }
 
 
@@ -44,12 +37,12 @@ public abstract class FnExecutor {
         }
     }
 
-    protected static final List<CmParameter> CONNECTION_PARAMETERS = Arrays.asList(new CmParameter[]{
+    static final List<CmParameter> CONNECTION_PARAMETERS = Collections.unmodifiableList(Arrays.asList(new CmParameter[]{
             CMPARM_URI,
             CMPARM_USER,
             CMPARM_PWD,
             CMPARM_OS
-    });
+    }));
 
     public static class CmParameter {
         private final String name;
@@ -126,17 +119,17 @@ public abstract class FnExecutor {
             CommandLine parsedLine = PARSER.parse(options, args);
 
             boolean emptyParams = false;
-            Map<CmParameter, String> paramValues = new HashMap<CmParameter,String>();
+            Map<CmParameter, String> paramValues = new HashMap<CmParameter, String>();
             for (CmParameter paramDef : cmParameters) {
                 if (paramDef.isMandatory() && !parsedLine.hasOption(paramDef.getName())) {
                     System.out.println("No parameter --" + paramDef.getName() + " (-" + paramDef.getShortName() + ") specified");
                     emptyParams = true;
                 }
-                String v=parsedLine.getOptionValue(paramDef.getName());
-                if(v==null){
-                    v=paramDef.getDefaultValue();
+                String v = parsedLine.getOptionValue(paramDef.getName());
+                if (v == null) {
+                    v = paramDef.getDefaultValue();
                 }
-                paramValues.put(paramDef,v );
+                paramValues.put(paramDef, v);
             }
             if (emptyParams) {
                 help(options);
@@ -147,7 +140,7 @@ public abstract class FnExecutor {
             doWork(paramValues);
 
         } catch (InvalidParametersException ipe) {
-            System.out.println("Wrong parameter "+ipe.getCmParameter().getName()+": " + ipe.getLocalizedMessage());
+            System.out.println("Wrong parameter " + ipe.getCmParameter().getName() + ": " + ipe.getLocalizedMessage());
             help(options);
         } catch (Exception e) {
             e.printStackTrace();
@@ -201,4 +194,6 @@ public abstract class FnExecutor {
 
     protected void initCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException {
     }
+
+
 }

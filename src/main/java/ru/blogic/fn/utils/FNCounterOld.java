@@ -1,4 +1,4 @@
-package ru.blogic.fn.util;
+package ru.blogic.fn.utils;
 
 import com.filenet.api.collection.IndependentObjectSet;
 import com.filenet.api.core.Connection;
@@ -25,7 +25,7 @@ public class FNCounterOld {
 
         // Set the constants
         // Use /FileNet/Engine for EJB
-        //String uri = "iiop://aeroflot-dev.it.ru:9810/FileNet/Engine";
+        //String uri = "iiop://aeroflot-dev.it.main.java.ru:9810/FileNet/Engine";
         //String uri = "http://172.19.68.37:9080/wsi/FNCEWS40MTOM/";
         //String uri = "http://aeroflot-dev.it.ru:9080/wsi/FNCEWS40MTOM/";
         String uri = "http://172.19.68.252:9080/wsi/FNCEWS40MTOM/";
@@ -49,7 +49,7 @@ public class FNCounterOld {
         UserContext uc = UserContext.get();
         // Build the subject using the FileNetP8 stanza
         // Use FileNetP8 for the EJB transport (also the default)
-        //System.setProperty("com.ibm.CORBA.securityServerHost","aeroflot-dev.it.ru");
+        //System.setProperty("com.ibm.CORBA.securityServerHost","aeroflot-dev.it.main.java.ru");
         uc.pushSubject(
                 //UserContext.createSubject(conn, username, password, "FileNetP8")
                 UserContext.createSubject(conn, username, password, "FileNetP8WSI")
