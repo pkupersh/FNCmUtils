@@ -1,4 +1,4 @@
-package ru.blogic.fn.util;
+package ru.blogic.fn.utils;
 
 import com.filenet.api.collection.IndependentObjectSet;
 import com.filenet.api.collection.PageIterator;
@@ -21,10 +21,10 @@ import java.util.Map;
  * Created by pkupershteyn on 07.06.2016.
  */
 public abstract class FnSelectExecutor extends FnExecutor {
-    protected static CmParameter CMPARM_PAGESIZE = new CmParameter("pageSize", "P", true, "Size of chunks to delete", false, "500");
-    protected static CmParameter CMPARM_CLASSNAME = new CmParameter("className", "c", true, "FileNet class to search for", false, null);
-    protected static CmParameter CMPARM_WHERE = new CmParameter("where", "w", true, "Where clause to filter object of given class", false, null);
-    protected static CmParameter CMPARM_SQL = new CmParameter("sql", "q", true, "A whole sql to execute", false, null);
+    protected static final CmParameter CMPARM_PAGESIZE = new CmParameter("pageSize", "P", true, "Size of chunks to delete", false, "500");
+    protected static final CmParameter CMPARM_CLASSNAME = new CmParameter("className", "c", true, "FileNet class to search for", false, null);
+    protected static final CmParameter CMPARM_WHERE = new CmParameter("where", "w", true, "Where clause to filter object of given class", false, null);
+    protected static final CmParameter CMPARM_SQL = new CmParameter("sql", "q", true, "A whole sql to execute", false, null);
 
     protected static final NumberFormat NUM_FORMAT = new DecimalFormat("#.#");
 
