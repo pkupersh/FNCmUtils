@@ -89,15 +89,15 @@ public abstract class FnExecutor {
             return defaultValue;
         }
 
-        Option toOption() {
+        public Option toOption() {
             return new Option(shortName, name, hasArgs, descr);
         }
 
     }
 
-    public abstract List<CmParameter> constructCmParameters();
+    protected abstract List<CmParameter> constructCmParameters();
 
-    private List<CmParameter> getCmParametersInternal() {
+    public List<CmParameter> getAllCmParameters() {
         List<CmParameter> cmParameters = new ArrayList<CmParameter>();
         cmParameters.addAll(CONNECTION_PARAMETERS);
         cmParameters.addAll(constructCmParameters());
@@ -105,7 +105,7 @@ public abstract class FnExecutor {
     }
 
     protected FnExecutor() {
-        cmParameters = getCmParametersInternal();
+        cmParameters = getAllCmParameters();
     }
 
 
@@ -116,8 +116,13 @@ public abstract class FnExecutor {
             for (CmParameter paramDef : cmParameters) {
                 options.addOption(paramDef.toOption());
             }
-            CommandLine parsedLine = PARSER.parse(options, args);
-
+            CommandLine parsedLine=null;
+            try {
+                parsedLine = PARSER.parse(options, args);
+            }catch (ParseException e){
+                System.out.println("Error: "+e.getMessage());
+                help(options);
+            }
             boolean emptyParams = false;
             Map<CmParameter, String> paramValues = new HashMap<CmParameter, String>();
             for (CmParameter paramDef : cmParameters) {
@@ -148,9 +153,9 @@ public abstract class FnExecutor {
     }
 
 
-    private static void help(Options options) {
+    private void help(Options options) {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp(FNDeleterOld.class.getSimpleName(), options);
+        formatter.printHelp(this.getClass().getSimpleName(), options);
         System.exit(0);
     }
 

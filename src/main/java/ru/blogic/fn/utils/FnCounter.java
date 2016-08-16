@@ -18,7 +18,7 @@ public class FnCounter extends FnSelectExecutor {
 
     @Override
     protected boolean processObject(IndependentlyPersistableObject ipo, UpdatingBatch batch, Map<CmParameter, String> parms) throws Exception {
-        return false;
+        return true;
     }
 
     @Override
