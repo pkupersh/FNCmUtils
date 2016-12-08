@@ -2,4 +2,4 @@
 --user=gcd_admin
 --password=o9p0[-]=
 --objectStore=OS1
---searchTemplate=xml
+--searchTemplate=StoredSearch
