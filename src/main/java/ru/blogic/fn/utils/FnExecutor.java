@@ -52,11 +52,11 @@ public abstract class FnExecutor {
         private final boolean mandatory;
         private final String defaultValue;
 
-        CmParameter(String name, String shortName, boolean hasArgs, String descr) {
+        public CmParameter(String name, String shortName, boolean hasArgs, String descr) {
             this(name, shortName, hasArgs, descr, true, null);
         }
 
-        CmParameter(String name, String shortName, boolean hasArgs, String descr, boolean mandatory, String defaultValue) {
+        public CmParameter(String name, String shortName, boolean hasArgs, String descr, boolean mandatory, String defaultValue) {
             this.name = name;
             this.shortName = shortName;
             this.hasArgs = hasArgs;

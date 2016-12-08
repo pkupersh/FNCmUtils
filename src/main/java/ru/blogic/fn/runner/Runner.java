@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 
 /**
@@ -69,23 +71,50 @@ public class Runner {
         return options;
     }
 
+    private static void printVersion() {
+        InputStream propStream = Runner.class.getClassLoader().getResourceAsStream("app.properties");
+        Properties props = new Properties();
+        try {
+            props.load(propStream);
+            System.out.println("FnCmUtils version " + props.get("version"));
+        } catch (Exception e) {
+        }
+    }
+
     public static void main(String... args) {
         try {
-
-
+            printVersion();
             CommandLine commandLine = null;
             try {
-                commandLine = PARSER.parse(OPTIONS, args, false);
+                commandLine = PARSER.parse(OPTIONS, args, true);
             } catch (ParseException e) {
-                help("Error: Cannot parse command line");
+                help("Error: Cannot parse command line: "+e.getMessage());
             }
             String utilityName = commandLine.getOptionValue(OPTION_UTILITY.getLongOpt(), DEFAULT_UTILITY_NAME);
 
 
             Class<? extends FnExecutor> util = UTILS.get(utilityName);
             if (util == null) {
-                help("Error: No utility '" + utilityName + "' present.");
+                //try to resolve string as a class name
+                try {
+                    util = cast2FnExecutor(Class.forName(utilityName), utilityName);
+                    //redo collecting options and command line parse here
+                    FnExecutor theUtil = util.newInstance();
+                    List<FnExecutor.CmParameter> cmParameters = theUtil.getAllCmParameters();
+                    for (FnExecutor.CmParameter cmParameter : cmParameters) {
+                        OPTIONS.addOption(cmParameter.toOption());
+                    }
+                    try {
+                        commandLine = PARSER.parse(OPTIONS, args, true);
+                    } catch (ParseException e) {
+                        help("Error: Cannot parse command line: "+e.getMessage());
+                    }
+                } catch (ClassNotFoundException e) {
+                    help("Error: No utility '" + utilityName + "' present or found as a class.");
+                }
             }
+
+
             FnExecutor instanceOfUtil = util.newInstance();
             Method methodRun = util.getMethod("execute", String[].class);
             methodRun.invoke(instanceOfUtil, new Object[]{buildResultingOptions(instanceOfUtil, commandLine)});
@@ -93,6 +122,13 @@ public class Runner {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    private static Class<? extends FnExecutor> cast2FnExecutor(Class clazz, String utilityName) {
+        if (!FnExecutor.class.isAssignableFrom(clazz)) {
+            help("Error: Utility '" + utilityName + "' found as a class but DOES NOT extend " + FnExecutor.class.getName());
+        }
+        return (Class<? extends FnExecutor>) clazz;
     }
 
     private static class OptionsSet extends LinkedHashSet<Option> {
@@ -114,6 +150,7 @@ public class Runner {
                 }
             }
         }
+
     }
 
     private static String[] buildResultingOptions(FnExecutor executor, CommandLine commandLine) {
