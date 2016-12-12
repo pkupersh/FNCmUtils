@@ -179,7 +179,7 @@ public abstract class FnExecutor {
         );
         try {
             // Get the default domain
-            Domain domain = Factory.Domain.getInstance(conn, null);
+            Domain domain = Factory.Domain.fetchInstance(conn, null,null);
             // Get an object store
             ObjectStore os = Factory.ObjectStore.fetchInstance(domain,
                     OS, null);

@@ -1,4 +1,5 @@
---uri=http://172.19.68.252:9080/wsi/FNCEWS40MTOM/
+--uri=http://172.19.68.227:9080/wsi/FNCEWS40MTOM/
 --user=gcd_admin
 --password=o9p0[-]=
---pageSize=5000
+--objectStore=OS1
+--searchTemplate=StoredSearch
