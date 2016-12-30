@@ -12,12 +12,14 @@ import java.util.Map;
 @Utility("counter")
 public class FnCounter extends FnSelectExecutor {
 
-    public static void main(String[] args){
-        new FnCounter().execute(args);
+
+    @Override
+    protected FetchType getFetchType() {
+        return FetchType.repositoryRows;
     }
 
     @Override
-    protected boolean processObject(IndependentlyPersistableObject ipo, UpdatingBatch batch, Map<CmParameter, String> parms) throws Exception {
+    protected boolean processObject(Object ipo, UpdatingBatch batch, Map<CmParameter, String> parms) throws Exception {
         return true;
     }
 

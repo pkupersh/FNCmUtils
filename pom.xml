@@ -6,7 +6,7 @@
 
     <groupId>ru.blogic.fn.util</groupId>
     <artifactId>FNCmUtils</artifactId>
-    <version>1.1</version>
+    <version>1.3</version>
     <packaging>jar</packaging>
 
 
@@ -69,6 +69,12 @@
             <artifactId>reflections</artifactId>
             <version>0.9.10</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>1.4</version>
+        </dependency>
     </dependencies>
 
 
@@ -97,7 +103,10 @@
                             <goal>unpack-dependencies</goal>
                         </goals>
                         <configuration>
-                            <excludes>META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA</excludes>
+                            <includeScope>runtime</includeScope>
+                            <!--<excludes>META-INF/*.SF,META-INF/*.DSA,META-INF/*.RSA</excludes>-->
+                            <includes>**/*.class,**/jaas.conf.*</includes>
+
                             <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                             <overWriteReleases>false</overWriteReleases>
                             <overWriteSnapshots>false</overWriteSnapshots>

@@ -16,12 +16,14 @@ public class FnDeleter extends FnSelectExecutor {
         super();
     }
 
-    public static void main(String[] args){
-        new FnDeleter().execute(args);
+    @Override
+    protected FetchType getFetchType() {
+        return FetchType.engineObjects;
     }
 
     @Override
-    protected boolean processObject(IndependentlyPersistableObject ipo, UpdatingBatch batch, Map<CmParameter, String> parms) throws Exception {
+    protected boolean processObject(Object object, UpdatingBatch batch, Map<CmParameter, String> parms) throws Exception {
+        IndependentlyPersistableObject ipo= (IndependentlyPersistableObject) object;
         ipo.delete();
         batch.add(ipo,null);
         return true;

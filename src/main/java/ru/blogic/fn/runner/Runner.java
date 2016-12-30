@@ -39,20 +39,26 @@ public class Runner {
 
     private static final String DEFAULT_UTILITY_NAME = "counter";
 
-    private static Option OPTION_UTILITY = new Option("ut", "utility", true, "Name of utility for running.");
-    private static Option OPTION_OPTIONSFILE = new Option("o", "options", true, "File with options. May be repeated. Explicit options take precedence over options from file. ");
-    private static Options OPTIONS = new Options();
+    private static Option OPTION_OPTIONSFILE = new Option("o", "options", true, "File with options. You can provide this option several times (resulting options will be merged). Explicit options take precedence over options from file(s).");
+    private static Option OPTION_UTILITY = new Option("ut", "utility", true, "Name of utility to execute.");
+    private static Option OPTION_HELP = new Option("h", "help", false, "Get help for specific utility. Use with combination with --" + OPTION_UTILITY.getLongOpt() + " option");
+    private static Options ALL_OPTIONS = new Options();
+    private static Options RUNNER_OPTIONS = new Options();
     private static Map<String, Class<FnExecutor>> UTILS;
     private static CommandLineParser PARSER = new DefaultParser();
 
     static {
-        OPTIONS.addOption(OPTION_UTILITY);
-        OPTIONS.addOption(OPTION_OPTIONSFILE);
+        ALL_OPTIONS.addOption(OPTION_UTILITY);
+        ALL_OPTIONS.addOption(OPTION_OPTIONSFILE);
+        ALL_OPTIONS.addOption(OPTION_HELP);
+        RUNNER_OPTIONS.addOption(OPTION_UTILITY);
+        RUNNER_OPTIONS.addOption(OPTION_OPTIONSFILE);
+        RUNNER_OPTIONS.addOption(OPTION_HELP);
         UTILS = getUtilitiesCollection();
-        OPTION_UTILITY.setDescription(OPTION_UTILITY.getDescription() + " Permitted values: " + UTILS.keySet() + ". Value by Default is " + DEFAULT_UTILITY_NAME);
+        OPTION_UTILITY.setDescription(OPTION_UTILITY.getDescription() + " Permitted values: " + UTILS.keySet() + ". You may also provide external utility class and use it's fully qualified name as a name of utility. Value by Default is " + DEFAULT_UTILITY_NAME);
         try {
             for (Option option : getAllOptions()) {
-                OPTIONS.addOption(option);
+                ALL_OPTIONS.addOption(option);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -86,11 +92,21 @@ public class Runner {
             printVersion();
             CommandLine commandLine = null;
             try {
-                commandLine = PARSER.parse(OPTIONS, args, true);
+                commandLine = PARSER.parse(ALL_OPTIONS, args, true);
             } catch (ParseException e) {
-                help("Error: Cannot parse command line: "+e.getMessage());
+                help("Error: Cannot parse command line: " + e.getMessage(), null, null);
             }
-            String utilityName = commandLine.getOptionValue(OPTION_UTILITY.getLongOpt(), DEFAULT_UTILITY_NAME);
+            if (commandLine.hasOption(OPTION_OPTIONSFILE.getLongOpt())) {
+                args = buildResultingOptions(null, commandLine);
+                commandLine = PARSER.parse(ALL_OPTIONS, args);
+            }
+
+            String utilityName = commandLine.getOptionValue(OPTION_UTILITY.getLongOpt(), null);
+            boolean useDefaultUtility = false;
+            if (utilityName == null) {
+                utilityName = DEFAULT_UTILITY_NAME;
+                useDefaultUtility = true;
+            }
 
 
             Class<? extends FnExecutor> util = UTILS.get(utilityName);
@@ -102,31 +118,54 @@ public class Runner {
                     FnExecutor theUtil = util.newInstance();
                     List<FnExecutor.CmParameter> cmParameters = theUtil.getAllCmParameters();
                     for (FnExecutor.CmParameter cmParameter : cmParameters) {
-                        OPTIONS.addOption(cmParameter.toOption());
+                        ALL_OPTIONS.addOption(cmParameter.toOption());
                     }
                     try {
-                        commandLine = PARSER.parse(OPTIONS, args, true);
+                        commandLine = PARSER.parse(ALL_OPTIONS, args, true);
                     } catch (ParseException e) {
-                        help("Error: Cannot parse command line: "+e.getMessage());
+                        help("Error: Cannot parse command line: " + e.getMessage(), null, null);
                     }
                 } catch (ClassNotFoundException e) {
-                    help("Error: No utility '" + utilityName + "' present or found as a class.");
+                    help("Error: No utility '" + utilityName + "' present or found as a class.", null, null);
                 }
             }
 
 
             FnExecutor instanceOfUtil = util.newInstance();
+
+            if (commandLine.hasOption(OPTION_HELP.getLongOpt())) {
+                if (!useDefaultUtility) {
+                    help(null, utilityName, instanceOfUtil.getAllCmParameters());
+                } else {
+                    help(null, null, null);
+                }
+            }
+
             Method methodRun = util.getMethod("execute", String[].class);
-            methodRun.invoke(instanceOfUtil, new Object[]{buildResultingOptions(instanceOfUtil, commandLine)});
+            methodRun.invoke(instanceOfUtil, new Object[]{getArgsWithoutCommon(commandLine)});
 
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println(e.getMessage());
+            //e.printStackTrace();
         }
+    }
+
+    private static String[] getArgsWithoutCommon(CommandLine commandLine) {
+        List<String> args = new ArrayList<String>();
+        Iterator<Option> iterator = commandLine.iterator();
+        while (iterator.hasNext()) {
+            Option option = iterator.next();
+            if (!option.equals(OPTION_UTILITY)) {
+                args.add("--" + option.getLongOpt());
+                args.add(option.getValue());
+            }
+        }
+        return args.toArray(new String[args.size()]);
     }
 
     private static Class<? extends FnExecutor> cast2FnExecutor(Class clazz, String utilityName) {
         if (!FnExecutor.class.isAssignableFrom(clazz)) {
-            help("Error: Utility '" + utilityName + "' found as a class but DOES NOT extend " + FnExecutor.class.getName());
+            help("Error: Utility '" + utilityName + "' found as a class but DOES NOT extend " + FnExecutor.class.getName(), null, null);
         }
         return (Class<? extends FnExecutor>) clazz;
     }
@@ -160,31 +199,36 @@ public class Runner {
             return commandLine.getArgs();
         }
         OptionsSet resultingOptions = new OptionsSet();
-        //Сначала добавляем параметры из командной строки, исключая специфичные для Ruuner
-        resultingOptions.addAllOptions(commandLine, new Option[]{OPTION_UTILITY, OPTION_OPTIONSFILE});
-        //Переворачиваем массив файлов, с тем, чтобы параметры последующег офайла перетирали параметры предыдущего
+        //Сначала добавляем параметры из командной строки, исключая optionsFile
+        resultingOptions.addAllOptions(commandLine, new Option[]{OPTION_OPTIONSFILE});
+        //Переворачиваем массив файлов, с тем, чтобы параметры последующего файла перетирали параметры предыдущего
         List<String> optionFilesList = new ArrayList<String>();
         optionFilesList.addAll(Arrays.asList(optionFiles));
         Collections.reverse(optionFilesList);
         for (String optionsFile : optionFilesList) {
             try {
                 String[] fileOptions = readOptionsFile(optionsFile);
-                CommandLine clFromFile = PARSER.parse(OPTIONS, fileOptions);
+                CommandLine clFromFile = PARSER.parse(ALL_OPTIONS, fileOptions);
                 resultingOptions.addAllOptions(clFromFile, null);
 
             } catch (FileNotFoundException fne) {
-                help("Error: Could not find options file " + optionsFile);
+                help("Error: Could not find options file " + optionsFile, null, null);
             } catch (IOException e) {
-                help("Error: Could not read options file " + optionsFile);
+                help("Error: Could not read options file " + optionsFile, null, null);
             } catch (ParseException e) {
-                help("Error: Could not parse options file " + optionsFile);
+                help("Error: Could not parse options file " + optionsFile, null, null);
             }
         }
         List<String> argList = new ArrayList<String>();
         for (Option option : resultingOptions) {
-            for (String value : option.getValues()) {
-                argList.add("-" + option.getOpt());
-                argList.add(value);
+            String[] values = option.getValues();
+            if(values!=null) {
+                for (String value : values) {
+                    argList.add("--" + option.getLongOpt());
+                    argList.add(value);
+                }
+            }else{
+                argList.add("--" + option.getLongOpt());
             }
         }
         return argList.toArray(new String[argList.size()]);
@@ -196,17 +240,30 @@ public class Runner {
         BufferedReader reader = new BufferedReader(new FileReader(optionsFile));
         String line;
         while (( line = reader.readLine() ) != null) {
-            options.add(line);
+            //exclude empty and commented lines
+            if (!"".equals(line) && line.charAt(0) != '\'') {
+                options.add(line);
+            }
         }
         return options.toArray(new String[options.size()]);
     }
 
-    private static void help(String message) {
+    private static void help(String message, String utilName, List<FnExecutor.CmParameter> cmParameters) {
         if (message != null) {
-            System.out.println(message);
+            System.err.println(message);
         }
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp(Runner.class.getSimpleName(), OPTIONS);
+        if (cmParameters == null) {
+            formatter.printHelp("java -jar FnCmUtils.jar <basic options> <utility specific options>", "Basic options:", RUNNER_OPTIONS, "");
+        } else {
+            Options options = new Options();
+            options.addOption(OPTION_OPTIONSFILE);
+
+            for (FnExecutor.CmParameter cmParameter : cmParameters) {
+                options.addOption(cmParameter.toOption());
+            }
+            formatter.printHelp("java -jar FnCmUtils.jar --" + OPTION_UTILITY.getLongOpt() + "=" + utilName + " <options>", "Options:", options, "");
+        }
         System.exit(0);
     }
 
@@ -235,5 +292,4 @@ public class Runner {
 
         return result;
     }
-
 }

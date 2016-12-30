@@ -5,9 +5,20 @@ import com.filenet.api.core.Domain;
 import com.filenet.api.core.Factory;
 import com.filenet.api.core.ObjectStore;
 import com.filenet.api.util.UserContext;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Created by pkupershteyn on 03.06.2016.
@@ -37,12 +48,10 @@ public abstract class FnExecutor {
         }
     }
 
-    static final List<CmParameter> CONNECTION_PARAMETERS = Collections.unmodifiableList(Arrays.asList(new CmParameter[]{
-            CMPARM_URI,
+    static final List<CmParameter> CONNECTION_PARAMETERS = Collections.unmodifiableList(Arrays.asList(CMPARM_URI,
             CMPARM_USER,
             CMPARM_PWD,
-            CMPARM_OS
-    }));
+            CMPARM_OS));
 
     public static class CmParameter {
         private final String name;
@@ -89,10 +98,15 @@ public abstract class FnExecutor {
             return defaultValue;
         }
 
+
         public Option toOption() {
             return new Option(shortName, name, hasArgs, descr);
         }
 
+        @Override
+        public String toString() {
+            return "--" + getName() + " (-" + getShortName() + ")";
+        }
     }
 
     protected abstract List<CmParameter> constructCmParameters();
@@ -116,11 +130,11 @@ public abstract class FnExecutor {
             for (CmParameter paramDef : cmParameters) {
                 options.addOption(paramDef.toOption());
             }
-            CommandLine parsedLine=null;
+            CommandLine parsedLine = null;
             try {
                 parsedLine = PARSER.parse(options, args);
-            }catch (ParseException e){
-                System.out.println("Error: "+e.getMessage());
+            } catch (ParseException e) {
+                System.out.println("Error: " + e.getMessage());
                 help(options);
             }
             boolean emptyParams = false;
@@ -145,8 +159,10 @@ public abstract class FnExecutor {
             doWork(paramValues);
 
         } catch (InvalidParametersException ipe) {
-            System.out.println("Wrong parameter " + ipe.getCmParameter().getName() + ": " + ipe.getLocalizedMessage());
+            System.err.println("Wrong parameter " + ipe.getCmParameter().getName() + ": " + ipe.getLocalizedMessage());
             help(options);
+        } catch (FnExecutorException e) {
+            System.err.println("Error: " + e.getLocalizedMessage());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -179,7 +195,7 @@ public abstract class FnExecutor {
         );
         try {
             // Get the default domain
-            Domain domain = Factory.Domain.fetchInstance(conn, null,null);
+            Domain domain = Factory.Domain.fetchInstance(conn, null, null);
             // Get an object store
             ObjectStore os = Factory.ObjectStore.fetchInstance(domain,
                     OS, null);

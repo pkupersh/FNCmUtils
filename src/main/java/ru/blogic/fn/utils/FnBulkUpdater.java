@@ -1,6 +1,7 @@
 package ru.blogic.fn.utils;
 
 import com.filenet.api.core.IndependentlyPersistableObject;
+import com.filenet.api.core.ObjectStore;
 import com.filenet.api.core.UpdatingBatch;
 import ru.blogic.fn.utils.annotations.Utility;
 
@@ -20,22 +21,22 @@ public class FnBulkUpdater extends FnSelectExecutor {
 
     private Map<String, Object> paramValues = new HashMap<String, Object>();
 
-
-    public static void main(String[] args) {
-        new FnBulkUpdater().execute(args);
-    }
-
     public FnBulkUpdater() {
         super();
     }
 
     @Override
     public List<CmParameter> constructCmParameters() {
-        List<CmParameter> params=new ArrayList<CmParameter>();
+        List<CmParameter> params = new ArrayList<CmParameter>();
         params.addAll(super.constructCmParameters());
         params.add(PARM_FIELDVALUES);
 
         return params;
+    }
+
+    @Override
+    protected FetchType getFetchType() {
+        return FetchType.engineObjects;
     }
 
     @Override
@@ -84,8 +85,9 @@ public class FnBulkUpdater extends FnSelectExecutor {
     }
 
     @Override
-    protected boolean processObject(IndependentlyPersistableObject ipo, UpdatingBatch batch, Map<CmParameter, String> parms) throws Exception {
+    protected boolean processObject(Object object, UpdatingBatch batch, Map<CmParameter, String> parms) throws Exception {
         boolean hasChanges = false;
+        IndependentlyPersistableObject ipo = (IndependentlyPersistableObject) object;
         for (Map.Entry<String, Object> entry : paramValues.entrySet()) {
             Object curValue = ipo.getProperties().getObjectValue(entry.getKey());
             Object newValue = entry.getValue();
@@ -121,9 +123,9 @@ public class FnBulkUpdater extends FnSelectExecutor {
     }
 
     @Override
-    protected List<String> getFieldSelectList() {
+    protected List<String> getFieldSelectList(ObjectStore objectStore, Map<CmParameter, String> parms) {
         List<String> flds = new ArrayList<String>();
-        flds.addAll(super.getFieldSelectList());
+        flds.addAll(super.getFieldSelectList(objectStore, parms));
         flds.addAll(paramValues.keySet());
         return flds;
     }
