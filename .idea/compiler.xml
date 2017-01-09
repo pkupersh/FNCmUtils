@@ -23,16 +23,24 @@
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
       </profile>
-      <profile default="false" name="Annotation profile for FNCmUtils" enabled="true">
+      <profile default="false" name="Annotation profile for FNCmUtilsCore" enabled="true">
         <sourceOutputDir name="target\generated-sources\annotations" />
         <sourceTestOutputDir name="target\generated-test-sources\test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
-        <module name="FNCmUtils" />
+      </profile>
+      <profile default="false" name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="true" />
+        <module name="FNCmUtilsUI" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="FNCmUtils" target="1.6" />
+      <module name="FNCmUtils" target="1.5" />
+      <module name="FNCmUtilsCore" target="1.6" />
+      <module name="FNCmUtilsUI" target="1.5" />
       <module name="lecm-clerkInfo-extractor" target="1.6" />
     </bytecodeTargetLevel>
   </component>

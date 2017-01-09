@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/FNCmUtils.iml" filepath="$PROJECT_DIR$/FNCmUtils.iml" />
+      <module fileurl="file://$PROJECT_DIR$/FNCmUtilsCore/FNCmUtilsCore.iml" filepath="$PROJECT_DIR$/FNCmUtilsCore/FNCmUtilsCore.iml" />
+      <module fileurl="file://$PROJECT_DIR$/FNCmUtilsUI/FNCmUtilsUI.iml" filepath="$PROJECT_DIR$/FNCmUtilsUI/FNCmUtilsUI.iml" />
     </modules>
   </component>
 </project>
