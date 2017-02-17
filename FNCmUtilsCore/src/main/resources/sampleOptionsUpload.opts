@@ -1,0 +1,8 @@
+--uri=http://172.19.68.227:9080/wsi/FNCEWS40MTOM/
+--utility=uploader
+--user=gcd_admin
+--password=o9p0[-]=
+--objectStore=OS0
+--className=LbMarshallingRule
+--sql=Select id, DocumentTitle from LbMarshallingRule lb  where DocumentTitle like 'SED_BDD_Publish' and lb.IsCurrentVersion = TRUE
+--files=C:/dev/core/specs/marshallingRules/sed/SED_BDD_Publish/SED_BDD_Publish.js,C:/dev/core/specs/marshallingRules/sed/SED_BDD_Publish/properties.json
