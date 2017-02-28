@@ -46,8 +46,13 @@ public class FNFolderStuctureDeleter extends FnExecutor {
     }
 
     @Override
-    protected void initCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException {
+    protected void checkCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException {
         //todo
+    }
+
+    @Override
+    public String getExecutorDescription() {
+        return "Utility to delete whole folder with all subelements and contained objects. Still does not work as expected :(";
     }
 
     private static final NumberFormat NUM_FORMAT = new DecimalFormat("#.#");

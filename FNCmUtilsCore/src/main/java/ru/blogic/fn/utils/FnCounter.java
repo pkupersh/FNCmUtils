@@ -37,4 +37,9 @@ public class FnCounter extends FnSelectExecutor {
     protected String getPostProcessVerb() {
         return "Counted";
     }
+
+    @Override
+    public String getExecutorDescription() {
+        return "Counts objects found by given parameters";
+    }
 }

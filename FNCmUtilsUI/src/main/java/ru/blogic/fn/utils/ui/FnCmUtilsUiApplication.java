@@ -4,17 +4,24 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import ru.blogic.fn.runner.Runner;
 
 public class FnCmUtilsUiApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) throws Exception {
-        Parent root = FXMLLoader.load(getClass().getResource("/FnCmUtilsApplication.fxml"));
-        primaryStage.setTitle("FnCmUtils");
+        FXMLLoader loader=new FXMLLoader(getClass().getResource("/FnCmUtilsApplication.fxml"));
+        Parent root = loader.load();
+        Controller controller=loader.getController();
+        primaryStage.setTitle("FnCmUtils v."+ Runner.getVersion());
         Scene scene = new Scene(root, 800, 600);
         primaryStage.setScene(scene);
         primaryStage.show();
+        controller.initAfterStage();
+        Pane pane;
+
     }
 
 

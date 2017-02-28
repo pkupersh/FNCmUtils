@@ -1,5 +1,6 @@
 package ru.blogic.fn.utils.ui;
 
+import javafx.application.Platform;
 import javafx.scene.control.TextArea;
 
 import java.io.IOException;
@@ -10,13 +11,20 @@ import java.io.Writer;
  */
 public class TextAreaWriter extends Writer {
     private final TextArea textArea;
+
     public TextAreaWriter(TextArea textArea) {
         this.textArea = textArea;
     }
 
     @Override
     public void write(char[] cbuf, int off, int len) throws IOException {
-        textArea.appendText(new String(cbuf, off, len));
+        final String output = new String(cbuf, off, len);
+        Platform.runLater(new Runnable() {
+            public void run() {
+                textArea.appendText(output);
+            }
+        });
+
     }
 
     @Override

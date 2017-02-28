@@ -48,6 +48,7 @@ public class Runner {
     private static final Map<String, Class<FnExecutor>> UTILS;
     private static final CommandLineParser PARSER = new DefaultParser();
 
+    private FnExecutor currentExecutor;
     private PrintWriter out;
     private PrintWriter err;
 
@@ -90,15 +91,21 @@ public class Runner {
     }
 
     private void printVersion() {
-        InputStream propStream = Runner.class.getClassLoader().getResourceAsStream("app.properties");
-        Properties props = new Properties();
-        try {
-            props.load(propStream);
-            out.println("FnCmUtils version " + props.get("version"));
-        } catch (Exception ignored) {
-        }
+        out.println("FnCmUtils v. "+getVersion());
+
     }
 
+    public static String getVersion() {
+        InputStream propStream = Runner.class.getClassLoader().getResourceAsStream("app.properties");
+        Properties props = new Properties();
+
+        try {
+            props.load(propStream);
+            return (String) props.get("version");
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
 
     public static void main(String... args) {
         Runner runner = new Runner();
@@ -163,13 +170,13 @@ public class Runner {
             }
 
 
-            FnExecutor instanceOfUtil = util.newInstance();
-            instanceOfUtil.setOut(out);
-            instanceOfUtil.setErr(err);
+            currentExecutor = util.newInstance();
+            currentExecutor.setOut(out);
+            currentExecutor.setErr(err);
 
             if (commandLine.hasOption(OPTION_HELP.getLongOpt())) {
                 if (!useDefaultUtility) {
-                    help(null, utilityName, instanceOfUtil.getAllCmParameters());
+                    help(null, utilityName, currentExecutor.getAllCmParameters());
                     return;
                 } else {
                     help(null, null, null);
@@ -177,12 +184,17 @@ public class Runner {
                 }
             }
 
-            Method methodRun = util.getMethod("execute", String[].class);
-            methodRun.invoke(instanceOfUtil, new Object[]{getArgsWithoutCommon(commandLine)});
+            Method executeMethod = util.getMethod("execute", String[].class);
+            executeMethod.invoke(currentExecutor, new Object[]{getArgsWithoutCommon(commandLine)});
 
         } catch (Exception e) {
             err.println(e.getMessage());
-            //e.printStackTrace();
+        }
+    }
+
+    public void interrupt() {
+        if (currentExecutor != null) {
+            currentExecutor.cancel();
         }
     }
 

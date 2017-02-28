@@ -17,6 +17,11 @@ public class FnDeleter extends FnSelectExecutor {
     }
 
     @Override
+    public String getExecutorDescription() {
+        return "Deletes found objects";
+    }
+
+    @Override
     protected FetchType getFetchType() {
         return FetchType.engineObjects;
     }

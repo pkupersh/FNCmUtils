@@ -12,6 +12,8 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import ru.blogic.fn.utils.annotations.Utility;
+import ru.blogic.fn.utils.concurrent.FnUtilRunnableParent;
 
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -20,12 +22,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by pkupershteyn on 03.06.2016.
  * Abstract FileNet Executor
  */
-public abstract class FnExecutor {
+public abstract class FnExecutor implements FnUtilRunnableParent {
 
     private final List<CmParameter> cmParameters;
 
@@ -38,6 +41,8 @@ public abstract class FnExecutor {
 
     private PrintWriter out;
     private PrintWriter err;
+
+    private final AtomicBoolean canceled = new AtomicBoolean(false);
 
     /**
      * Sets writer for Executor's standard output
@@ -214,12 +219,24 @@ public abstract class FnExecutor {
         cmParameters = getAllCmParameters();
     }
 
+
+    public String getExecutorName() {
+        Class c = this.getClass();
+        Utility annotation = (Utility) c.getAnnotation(Utility.class);
+        if (( annotation == null || "".equals(annotation.value().trim()) )) {
+            return c.getSimpleName();
+        } else {
+            return annotation.value();
+        }
+    }
+
     /**
      * Main entry point to run executor from command line
      *
      * @param args Command line arguments
      */
     public void execute(String[] args) {
+
         Options options = new Options();
         try {
 
@@ -252,9 +269,8 @@ public abstract class FnExecutor {
                 return;
             }
 
-            initCmParameterValues(paramValues);
 
-            doWork(paramValues);
+            execute(paramValues);
 
         } catch (InvalidParametersException ipe) {
             err.println("Wrong parameter " + ipe.getCmParameter().getName() + ": " + ipe.getLocalizedMessage());
@@ -269,11 +285,14 @@ public abstract class FnExecutor {
 
     private void help(Options options) {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp(out, 80, this.getClass().getSimpleName(), "", options, 0, 0, "", false);
+        formatter.printHelp(out, 80, this.getExecutorName()+" <arguments>", "where <arguments> are:", options, 0, 0, "", false);
     }
 
 
-    private void doWork(Map<CmParameter, String> parms) throws Exception {
+    public void execute(Map<CmParameter, String> parms) throws Exception {
+
+        checkCmParameterValues(parms);
+
         String uri = parms.get(CMPARM_URI);
         String username = parms.get(CMPARM_USER);
         String password = parms.get(CMPARM_PWD);
@@ -281,6 +300,8 @@ public abstract class FnExecutor {
 
         String OS = parms.get(CMPARM_OS);
         // Get the connection
+
+        long millis = System.currentTimeMillis();
 
         Connection conn = Factory.Connection.getConnection(uri);
 
@@ -297,10 +318,11 @@ public abstract class FnExecutor {
             ObjectStore os = Factory.ObjectStore.fetchInstance(domain,
                     OS, null);
 
-            out.println("OS name '" + os.get_Name() + "' (id: '" + os.get_Id().toString() + "') descriptive text: " + os.get_DescriptiveText());
+            printInfo("OS name '" + os.get_Name() + "' (id: '" + os.get_Id().toString() + "') descriptive text: " + os.get_DescriptiveText());
 
             doFnWork(domain, os, parms);
 
+            printInfo(String.format("%s finished (duration: %s ms).", getExecutorName(), System.currentTimeMillis() - millis));
 
         } finally {
             // Pop the subject off the UserContext stack
@@ -319,20 +341,23 @@ public abstract class FnExecutor {
     protected abstract void doFnWork(Domain domain, ObjectStore objectStore, Map<CmParameter, String> parms) throws Exception;
 
     /**
-     * Method that must perform parameter value checking  and initialization.
+     * Method that must perform parameter value checking and initialization.
      *
      * @param parms map of parameter-value pairs
      * @throws InvalidParametersException
      */
-    protected abstract void initCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException;
+    protected abstract void checkCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException;
 
+
+    public abstract String getExecutorDescription();
 
     /**
      * Write to standard output
      *
      * @param info The string to write
      */
-    protected void printInfo(String info) {
+    public void printInfo(String info) {
+        System.out.println("try to printinfo");
         if (info != null) {
             out.println(info);
         }
@@ -343,9 +368,27 @@ public abstract class FnExecutor {
      *
      * @param error The satring to write
      */
-    protected void printError(String error) {
+    public void printError(String error) {
         if (error != null) {
             err.println(error);
         }
+    }
+
+
+    public AtomicBoolean isCanceled() {
+        return canceled;
+    }
+
+    public void cancel() {
+        canceled.set(true);
+        System.out.println(" FnExcutor canceled: " + canceled.get());
+    }
+
+    protected boolean checkCanceled() {
+        if (isCanceled().get()) {
+            printInfo("Cancel signal detected, stopping...");
+            return true;
+        }
+        return false;
     }
 }

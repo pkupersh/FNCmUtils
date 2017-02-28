@@ -195,7 +195,7 @@ public class FnCsvExporter extends FnSelectExecutor {
     }
 
     @Override
-    protected void initCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException {
+    protected void checkCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException {
         String sql = parms.get(FnSelectExecutor.CMPARM_SQL);
         if (sql == null) {
             CmParameter wrongParm = null;
@@ -245,6 +245,11 @@ public class FnCsvExporter extends FnSelectExecutor {
                 .withRecordSeparator(parms.get(CMPARM_RECORD_SEPARATOR))
                 .withQuote(parms.get(CMPARM_QUOTE).charAt(0));
         recordSeparator = parms.get(CMPARM_RECORD_SEPARATOR);
+    }
+
+    @Override
+    public String getExecutorDescription() {
+        return "Exports found objects into a CSV file (or outputs results to console)";
     }
 
     private void closeOutput() {
@@ -372,7 +377,7 @@ public class FnCsvExporter extends FnSelectExecutor {
     }
 
     @Override
-    protected void printInfo(String info) {
+    public void printInfo(String info) {
         if (doOutput) {
             super.printInfo(info);
         }

@@ -15,11 +15,11 @@ import java.util.*;
 @Utility("searchInAddons")
 public class FnSearchInAddons extends FnExecutor {
 
-    protected static final CmParameter CMPARM_SEARCHTEMPALTE = new CmParameter("searchTemplate", "T", true, "Search pattern. Regex", true, null);
+    protected static final CmParameter CMPARM_SEARCHTEMPLATE = new CmParameter("searchTemplate", "T", true, "Search pattern. Regex", true, null);
 
     @Override
     public List<CmParameter> getImmediateCmParameters() {
-        return Arrays.asList(CMPARM_SEARCHTEMPALTE);
+        return Arrays.asList(CMPARM_SEARCHTEMPLATE);
     }
 
     @Override
@@ -31,7 +31,7 @@ public class FnSearchInAddons extends FnExecutor {
         while (it.hasNext()) {
             AddOn addOn = it.next();
             Scanner s = new Scanner(addOn.accessImportDataStream());
-            String nextMatch = s.findWithinHorizon(parms.get(CMPARM_SEARCHTEMPALTE), 0);
+            String nextMatch = s.findWithinHorizon(parms.get(CMPARM_SEARCHTEMPLATE), 0);
             if (nextMatch != null) {
                 addonNames.put(addOn.get_DisplayName(), nextMatch);
             }
@@ -48,7 +48,12 @@ public class FnSearchInAddons extends FnExecutor {
     }
 
     @Override
-    protected void initCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException {
+    protected void checkCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException {
         //todo
+    }
+
+    @Override
+    public String getExecutorDescription() {
+        return "Utility to search addons existing in FileNet domain by regular expression pattern.";
     }
 }

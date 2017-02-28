@@ -40,7 +40,7 @@ public class FnBulkUpdater extends FnSelectExecutor {
     }
 
     @Override
-    protected void initCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException {
+    protected void checkCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException {
         String[] fldPairs = parms.get(PARM_FIELDVALUES).split(",");
         for (String fldPair : fldPairs) {
             String[] fldPairArr = fldPair.trim().split("=");
@@ -82,6 +82,11 @@ public class FnBulkUpdater extends FnSelectExecutor {
 
             paramValues.put(fldName, fldValueObj);
         }
+    }
+
+    @Override
+    public String getExecutorDescription() {
+        return "Utility to set some properties for selected objects.";
     }
 
     @Override
