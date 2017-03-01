@@ -26,9 +26,9 @@ public class FnBulkUpdater extends FnSelectExecutor {
     }
 
     @Override
-    public List<CmParameter> getImmediateCmParameters() {
+    public List<CmParameter> getAppliedCmParameters() {
         List<CmParameter> params = new ArrayList<CmParameter>();
-        params.addAll(super.getImmediateCmParameters());
+        params.addAll(super.getAppliedCmParameters());
         params.add(PARM_FIELDVALUES);
 
         return params;

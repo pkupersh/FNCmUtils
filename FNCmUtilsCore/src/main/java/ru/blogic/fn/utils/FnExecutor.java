@@ -5,8 +5,6 @@ import com.filenet.api.core.Domain;
 import com.filenet.api.core.Factory;
 import com.filenet.api.core.ObjectStore;
 import com.filenet.api.util.UserContext;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
 import ru.blogic.fn.utils.annotations.Utility;
 import ru.blogic.fn.utils.concurrent.FnUtilRunnableParent;
 
@@ -27,17 +25,20 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
 
     private List<CmParameter> cmParameters;
 
-    static private final CommandLineParser PARSER = new DefaultParser();
-
     protected static final CmParameter CMPARM_URI = new CmParameter("uri", "U", true, "An url to connect to filenet", true, null);
     protected static final CmParameter CMPARM_USER = new CmParameter("user", "u", true, "User name", true, null);
-    protected static final CmParameter CMPARM_PWD = new CmParameter("password", "p", true, "Usr password", true, null);
+    protected static final CmParameter CMPARM_PWD = new CmParameter("password", "p", true, "User password", true, null);
     protected static final CmParameter CMPARM_OS = new CmParameter("objectStore", "s", true, "An object store to connect to", true, null);
 
     private PrintWriter out;
     private PrintWriter err;
 
     private final AtomicBoolean canceled = new AtomicBoolean(false);
+
+
+    protected FnExecutor() {
+    }
+
 
     /**
      * Sets writer for Executor's standard output
@@ -202,12 +203,12 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
     }
 
     /**
-     * Must return a list of parameters that are defined immediately by implementing class
+     * Must return a list of applied parameters (i.e. all parameters except connectivity)
      * The final list of all parameters will be merged (@see {@link #getAllCmParameters()})
      *
      * @return
      */
-    protected abstract List<CmParameter> getImmediateCmParameters();
+    protected abstract List<CmParameter> getAppliedCmParameters();
 
     /**
      * Get All Executor parameters
@@ -218,14 +219,10 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
         if (cmParameters == null) {
             cmParameters = new ArrayList<CmParameter>();
             cmParameters.addAll(CONNECTION_PARAMETERS);
-            cmParameters.addAll(getImmediateCmParameters());
+            cmParameters.addAll(getAppliedCmParameters());
         }
         return cmParameters;
     }
-
-    protected FnExecutor() {
-    }
-
 
     public String getExecutorName() {
         Class c = this.getClass();

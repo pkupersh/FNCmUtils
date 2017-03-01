@@ -18,7 +18,7 @@ public class FnSearchInAddons extends FnExecutor {
     protected static final CmParameter CMPARM_SEARCHTEMPLATE = new CmParameter("searchTemplate", "T", true, "Search pattern. Regex", true, null);
 
     @Override
-    public List<CmParameter> getImmediateCmParameters() {
+    public List<CmParameter> getAppliedCmParameters() {
         return Arrays.asList(CMPARM_SEARCHTEMPLATE);
     }
 

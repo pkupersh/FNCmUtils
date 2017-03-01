@@ -56,7 +56,7 @@ public abstract class FnSelectExecutor extends FnExecutor {
     }
 
     @Override
-    public List<CmParameter> getImmediateCmParameters() {
+    public List<CmParameter> getAppliedCmParameters() {
         return Arrays.asList(CMPARM_SQL, CMPARM_CLASSNAME, CMPARM_WHERE, CMPARM_PAGESIZE, CMPARM_THREADS);
     }
 

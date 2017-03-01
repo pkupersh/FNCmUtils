@@ -29,7 +29,7 @@ public class FNFolderStuctureDeleter extends FnExecutor {
     protected static final CmParameter CMPARM_FOLDERSTRUCTURE = new CmParameter("folderStructure", "f", true, "Folder to delete (with substructure)", true, null);
 
     @Override
-    public List<CmParameter> getImmediateCmParameters() {
+    public List<CmParameter> getAppliedCmParameters() {
         return Arrays.asList(CMPARM_FOLDERSTRUCTURE, FnSelectExecutor.CMPARM_PAGESIZE);
     }
 
