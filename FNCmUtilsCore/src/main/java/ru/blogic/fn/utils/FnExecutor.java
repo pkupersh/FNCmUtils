@@ -5,13 +5,8 @@ import com.filenet.api.core.Domain;
 import com.filenet.api.core.Factory;
 import com.filenet.api.core.ObjectStore;
 import com.filenet.api.util.UserContext;
-import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import ru.blogic.fn.utils.annotations.Utility;
 import ru.blogic.fn.utils.concurrent.FnUtilRunnableParent;
 
@@ -30,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public abstract class FnExecutor implements FnUtilRunnableParent {
 
-    private final List<CmParameter> cmParameters;
+    private List<CmParameter> cmParameters;
 
     static private final CommandLineParser PARSER = new DefaultParser();
 
@@ -74,7 +69,7 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
      * Exception that must be thrown in case of error found in any Executor parameter
      */
     public static class InvalidParametersException extends Exception {
-        private final CmParameter cmParameter;
+        private final Map<CmParameter, String> cmParameters = new HashMap<CmParameter, String>();
 
         /**
          * @param parameter Executor parameter that contains wrong value
@@ -82,16 +77,31 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
          */
         public InvalidParametersException(CmParameter parameter, String message) {
             super(message);
-            cmParameter = parameter;
+            cmParameters.put(parameter, message);
+        }
+
+        public InvalidParametersException(Map<CmParameter, String> cmParameters) {
+            super("Multiply wrong parameters");
+            cmParameters.putAll(cmParameters);
         }
 
         /**
-         * Get wrong parameter
+         * Get wrong parameters
          *
-         * @return Wrong parameter
+         * @return Wrong parameters
          */
-        public CmParameter getCmParameter() {
-            return cmParameter;
+        public Map<CmParameter, String> getCmParameters() {
+            return cmParameters;
+        }
+
+        /**
+         * Prints information about wrong paramteters
+         * @param out output
+         */
+        public void printMessages(PrintWriter out) {
+            for (Map.Entry<CmParameter, String> entry : cmParameters.entrySet()) {
+                out.println("Wrong parameter: " + entry.getKey().getName() + ": " + entry.getValue());
+            }
         }
     }
 
@@ -185,10 +195,6 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
         }
 
 
-        public Option toOption() {
-            return new Option(shortName, name, hasArgs, descr);
-        }
-
         @Override
         public String toString() {
             return "--" + getName() + " (-" + getShortName() + ")";
@@ -209,14 +215,15 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
      * @return All Executor parameters
      */
     public List<CmParameter> getAllCmParameters() {
-        List<CmParameter> cmParameters = new ArrayList<CmParameter>();
-        cmParameters.addAll(CONNECTION_PARAMETERS);
-        cmParameters.addAll(getImmediateCmParameters());
+        if (cmParameters == null) {
+            cmParameters = new ArrayList<CmParameter>();
+            cmParameters.addAll(CONNECTION_PARAMETERS);
+            cmParameters.addAll(getImmediateCmParameters());
+        }
         return cmParameters;
     }
 
     protected FnExecutor() {
-        cmParameters = getAllCmParameters();
     }
 
 
@@ -231,66 +238,13 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
     }
 
     /**
-     * Main entry point to run executor from command line
-     *
-     * @param args Command line arguments
+     * The main method that does execution
+     * @param parms Map of parameter values
+     * @throws Exception
      */
-    public void execute(String[] args) {
-
-        Options options = new Options();
-        try {
-
-            for (CmParameter paramDef : cmParameters) {
-                options.addOption(paramDef.toOption());
-            }
-            CommandLine parsedLine;
-            try {
-                parsedLine = PARSER.parse(options, args);
-            } catch (ParseException e) {
-                out.println("Error: " + e.getMessage());
-                help(options);
-                return;
-            }
-            boolean emptyParams = false;
-            Map<CmParameter, String> paramValues = new HashMap<CmParameter, String>();
-            for (CmParameter paramDef : cmParameters) {
-                if (paramDef.isMandatory() && !parsedLine.hasOption(paramDef.getName())) {
-                    out.println("No parameter --" + paramDef.getName() + " (-" + paramDef.getShortName() + ") specified");
-                    emptyParams = true;
-                }
-                String v = parsedLine.getOptionValue(paramDef.getName());
-                if (v == null) {
-                    v = paramDef.getDefaultValue();
-                }
-                paramValues.put(paramDef, v);
-            }
-            if (emptyParams) {
-                help(options);
-                return;
-            }
-
-
-            execute(paramValues);
-
-        } catch (InvalidParametersException ipe) {
-            err.println("Wrong parameter " + ipe.getCmParameter().getName() + ": " + ipe.getLocalizedMessage());
-            help(options);
-        } catch (FnExecutorException e) {
-            err.println("Error: " + e.getLocalizedMessage());
-        } catch (Exception e) {
-            e.printStackTrace(err);
-        }
-    }
-
-
-    private void help(Options options) {
-        HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp(out, 80, this.getExecutorName()+" <arguments>", "where <arguments> are:", options, 0, 0, "", false);
-    }
-
-
     public void execute(Map<CmParameter, String> parms) throws Exception {
 
+        checkMandatoryAndSetDefaults(parms);
         checkCmParameterValues(parms);
 
         String uri = parms.get(CMPARM_URI);
@@ -348,8 +302,29 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
      */
     protected abstract void checkCmParameterValues(Map<CmParameter, String> parms) throws InvalidParametersException;
 
-
+    /**
+     * Returns description of executor
+     * @return description of executor
+     */
     public abstract String getExecutorDescription();
+
+    private void checkMandatoryAndSetDefaults(Map<CmParameter, String> parms) throws InvalidParametersException {
+        Map<CmParameter, String> paramErrors = new HashMap<CmParameter, String>();
+        for (CmParameter cmParameter : getAllCmParameters()) {
+            if (parms.get(cmParameter) == null && cmParameter.getDefaultValue() != null) {
+                parms.put(cmParameter, cmParameter.getDefaultValue());
+            }
+            if (parms.get(cmParameter) == null && cmParameter.isMandatory()) {
+                printError("No parameter --" + cmParameter.getName() + " (-" + cmParameter.getShortName() + ") specified");
+                paramErrors.put(cmParameter, "No value specified for mandatory parameter");
+            }
+        }
+
+        if (!paramErrors.isEmpty()) {
+            throw new InvalidParametersException(paramErrors);
+        }
+    }
+
 
     /**
      * Write to standard output
@@ -374,19 +349,30 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
         }
     }
 
-
-    public AtomicBoolean isCanceled() {
+    /**
+     * Provides ability to check if curent executor was canceled (@see {@link #cancel()})
+     * @return
+     */
+    public final AtomicBoolean isCanceled() {
         return canceled;
     }
 
+    /**
+     * Cancels execution/
+     */
     public void cancel() {
         canceled.set(true);
-        System.out.println(" FnExcutor canceled: " + canceled.get());
+        System.out.println(getExecutorName()+" cancel flag is set");
     }
 
+    /**
+     * The method to use inside executors's body (@see {@link #doFnWork(Domain, ObjectStore, Map)}) to check if current executio is canceled
+     * Executor implementation must call this method before every atomic operation to check cancel status, and terminate execution if it is set
+     * @return cancel status
+     */
     protected boolean checkCanceled() {
         if (isCanceled().get()) {
-            printInfo("Cancel signal detected, stopping...");
+            printInfo("Cancel signal detected, stopping "+getExecutorName()+"...");
             return true;
         }
         return false;

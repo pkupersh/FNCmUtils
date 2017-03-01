@@ -6,7 +6,7 @@
 
     <groupId>ru.blogic.fn.util</groupId>
     <artifactId>FNCmUtils</artifactId>
-    <version>1.4</version>
+    <version>1.5</version>
     <modules>
         <module>FNCmUtilsCore</module>
         <module>FNCmUtilsUI</module>

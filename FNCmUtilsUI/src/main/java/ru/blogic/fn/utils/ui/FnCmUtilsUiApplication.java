@@ -15,7 +15,7 @@ public class FnCmUtilsUiApplication extends Application {
         FXMLLoader loader=new FXMLLoader(getClass().getResource("/FnCmUtilsApplication.fxml"));
         Parent root = loader.load();
         Controller controller=loader.getController();
-        primaryStage.setTitle("FnCmUtils v."+ Runner.getVersion());
+        primaryStage.setTitle(Runner.getName()+" v."+ Runner.getVersion());
         Scene scene = new Scene(root, 800, 600);
         primaryStage.setScene(scene);
         primaryStage.show();

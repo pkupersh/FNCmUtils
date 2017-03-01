@@ -9,6 +9,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.reflections.Reflections;
 import ru.blogic.fn.utils.FnExecutor;
+import ru.blogic.fn.utils.FnExecutorException;
 import ru.blogic.fn.utils.annotations.Utility;
 
 import java.io.BufferedReader;
@@ -18,7 +19,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,7 +52,23 @@ public class Runner {
     private PrintWriter out;
     private PrintWriter err;
 
+    private static final String APP_NAME;
+    private static final String APP_VERSION;
+
     static {
+        // init props
+        InputStream propStream = Runner.class.getClassLoader().getResourceAsStream("app.properties");
+        Properties props = new Properties();
+
+        try {
+            props.load(propStream);
+
+        } catch (Exception ignored) {
+        }
+
+        APP_NAME=props.getProperty("name","{UNKNOWN}");
+        APP_VERSION=props.getProperty("version","{UNKNOWN}");
+
         ALL_OPTIONS.addOption(OPTION_UTILITY);
         ALL_OPTIONS.addOption(OPTION_OPTIONSFILE);
         ALL_OPTIONS.addOption(OPTION_HELP);
@@ -76,7 +92,7 @@ public class Runner {
             FnExecutor theUtil = fnExecutorClass.newInstance();
             List<FnExecutor.CmParameter> cmParameters = theUtil.getAllCmParameters();
             for (FnExecutor.CmParameter cmParameter : cmParameters) {
-                options.add(cmParameter.toOption());
+                options.add(toOption(cmParameter));
             }
         }
         return options;
@@ -91,20 +107,16 @@ public class Runner {
     }
 
     private void printVersion() {
-        out.println("FnCmUtils v. "+getVersion());
+        out.println(getName()+" v. "+getVersion());
 
     }
 
     public static String getVersion() {
-        InputStream propStream = Runner.class.getClassLoader().getResourceAsStream("app.properties");
-        Properties props = new Properties();
+        return APP_VERSION;
+    }
 
-        try {
-            props.load(propStream);
-            return (String) props.get("version");
-        } catch (Exception ignored) {
-            return null;
-        }
+    public static String getName(){
+        return APP_NAME;
     }
 
     public static void main(String... args) {
@@ -155,7 +167,7 @@ public class Runner {
 
                     List<FnExecutor.CmParameter> cmParameters = theUtil.getAllCmParameters();
                     for (FnExecutor.CmParameter cmParameter : cmParameters) {
-                        ALL_OPTIONS.addOption(cmParameter.toOption());
+                        ALL_OPTIONS.addOption(toOption(cmParameter));
                     }
                     try {
                         commandLine = PARSER.parse(ALL_OPTIONS, args, true);
@@ -184,8 +196,7 @@ public class Runner {
                 }
             }
 
-            Method executeMethod = util.getMethod("execute", String[].class);
-            executeMethod.invoke(currentExecutor, new Object[]{getArgsWithoutCommon(commandLine)});
+            execute(currentExecutor,getArgsWithoutCommon(commandLine));
 
         } catch (Exception e) {
             err.println(e.getMessage());
@@ -306,15 +317,15 @@ public class Runner {
         }
         HelpFormatter formatter = new HelpFormatter();
         if (cmParameters == null) {
-            formatter.printHelp(out, 80, "java -jar FnCmUtils.jar <basic options> <utility specific options>", "Basic options:", RUNNER_OPTIONS, 0, 0, "");
+            formatter.printHelp(out, 80, "java -jar "+getName()+".jar <basic options> <utility specific options>", "Basic options:", RUNNER_OPTIONS, 0, 0, "");
         } else {
             Options options = new Options();
             options.addOption(OPTION_OPTIONSFILE);
 
             for (FnExecutor.CmParameter cmParameter : cmParameters) {
-                options.addOption(cmParameter.toOption());
+                options.addOption(toOption(cmParameter));
             }
-            formatter.printHelp(out, 80, "java -jar FnCmUtils.jar --" + OPTION_UTILITY.getLongOpt() + "=" + utilName + " <options>", "Options:", options, 0, 0, "");
+            formatter.printHelp(out, 80, "java -jar "+getName()+".jar --" + OPTION_UTILITY.getLongOpt() + "=" + utilName + " <options>", "Options:", options, 0, 0, "");
         }
     }
 
@@ -342,5 +353,57 @@ public class Runner {
         }
 
         return result;
+    }
+
+    public static Option toOption(FnExecutor.CmParameter cmParameter){
+        return new Option(cmParameter.getShortName(), cmParameter.getName(), cmParameter.isHasArgs(), cmParameter.getDescr());
+    }
+
+    public void execute(FnExecutor executor, String[] args) {
+
+        Options options = new Options();
+        try {
+            List<FnExecutor.CmParameter> cmParameters = executor.getAllCmParameters();
+            Map<String,FnExecutor.CmParameter> cmParametersByName=new HashMap<String, FnExecutor.CmParameter>();
+            for (FnExecutor.CmParameter paramDef : cmParameters ) {
+                options.addOption(toOption(paramDef));
+                cmParametersByName.put(paramDef.getName(),paramDef);
+            }
+            CommandLine parsedLine;
+            try {
+                parsedLine = PARSER.parse(options, args);
+            } catch (ParseException e) {
+                out.println("Error: " + e.getMessage());
+                help(executor,options);
+                return;
+            }
+            Map<FnExecutor.CmParameter, String> paramValues = new HashMap<FnExecutor.CmParameter, String>();
+
+            Iterator<Option> iterator = parsedLine.iterator();
+            while (iterator.hasNext()){
+                Option option = iterator.next();
+                FnExecutor.CmParameter cmParameter=cmParametersByName.get(option.getLongOpt());
+                if(cmParameter !=null) {
+                    paramValues.put(cmParameter,option.getValue());
+                }
+            }
+
+
+            executor.execute(paramValues);
+
+        } catch (FnExecutor.InvalidParametersException ipe) {
+            ipe.printMessages(err);
+            help(executor, options);
+        } catch (FnExecutorException e) {
+            err.println("Error: " + e.getLocalizedMessage());
+        } catch (Exception e) {
+            e.printStackTrace(err);
+        }
+    }
+
+    private void help(FnExecutor executor, Options options) {
+
+        HelpFormatter formatter = new HelpFormatter();
+        formatter.printHelp(out, 80, executor.getExecutorName()+" <options>", "where <options> are:", options, 0, 0, "", false);
     }
 }

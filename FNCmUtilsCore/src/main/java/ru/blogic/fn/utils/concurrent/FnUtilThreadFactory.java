@@ -1,11 +1,11 @@
 package ru.blogic.fn.utils.concurrent;
 
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by pkupershteyn on 22.02.2017.
+ * A simple thread factory that creates normal threads with numeric names
  */
 public class FnUtilThreadFactory implements ThreadFactory {
     final AtomicInteger threadNumber = new AtomicInteger(1);
