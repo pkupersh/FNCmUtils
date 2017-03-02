@@ -35,10 +35,12 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
 
     private final AtomicBoolean canceled = new AtomicBoolean(false);
 
-
-    protected FnExecutor() {
-    }
-
+    static final List<CmParameter> CONNECTION_PARAMETERS = Collections.unmodifiableList(Arrays.asList(
+            CMPARM_URI,
+            CMPARM_USER,
+            CMPARM_PWD,
+            CMPARM_OS
+    ));
 
     /**
      * Sets writer for Executor's standard output
@@ -67,142 +69,6 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
     }
 
     /**
-     * Exception that must be thrown in case of error found in any Executor parameter
-     */
-    public static class InvalidParametersException extends Exception {
-        private final Map<CmParameter, String> cmParameters = new HashMap<CmParameter, String>();
-
-        /**
-         * @param parameter Executor parameter that contains wrong value
-         * @param message   Message that describes error details
-         */
-        public InvalidParametersException(CmParameter parameter, String message) {
-            super(message);
-            cmParameters.put(parameter, message);
-        }
-
-        public InvalidParametersException(Map<CmParameter, String> cmParameters) {
-            super("Multiply wrong parameters");
-            cmParameters.putAll(cmParameters);
-        }
-
-        /**
-         * Get wrong parameters
-         *
-         * @return Wrong parameters
-         */
-        public Map<CmParameter, String> getCmParameters() {
-            return cmParameters;
-        }
-
-        /**
-         * Prints information about wrong paramteters
-         * @param out output
-         */
-        public void printMessages(PrintWriter out) {
-            for (Map.Entry<CmParameter, String> entry : cmParameters.entrySet()) {
-                out.println("Wrong parameter: " + entry.getKey().getName() + ": " + entry.getValue());
-            }
-        }
-    }
-
-    static final List<CmParameter> CONNECTION_PARAMETERS = Collections.unmodifiableList(Arrays.asList(CMPARM_URI,
-            CMPARM_USER,
-            CMPARM_PWD,
-            CMPARM_OS));
-
-    /**
-     * Executor parameter
-     */
-    public static class CmParameter {
-        private final String name;
-        private final String shortName;
-        private final boolean hasArgs;
-        private final String descr;
-        private final boolean mandatory;
-        private final String defaultValue;
-
-        /**
-         * Constructs new mandatory Executor parameter thith null default value
-         *
-         * @param name      Name of parameter
-         * @param shortName Short name of parameter
-         * @param hasArgs   Does that parameter has arguments.
-         * @param descr     Description of parameter
-         */
-        public CmParameter(String name, String shortName, boolean hasArgs, String descr) {
-            this(name, shortName, hasArgs, descr, true, null);
-        }
-
-        /**
-         * Constructs new Executor parameter
-         *
-         * @param name         Name of parameter
-         * @param shortName    Short name of parameter
-         * @param hasArgs      Does that parameter has arguments.
-         * @param descr        Description of parameter
-         * @param mandatory    Is that parameter mandatory
-         * @param defaultValue Default value for parameter
-         */
-        public CmParameter(String name, String shortName, boolean hasArgs, String descr, boolean mandatory, String defaultValue) {
-            this.name = name;
-            this.shortName = shortName;
-            this.hasArgs = hasArgs;
-            this.descr = descr;
-            this.mandatory = mandatory;
-            this.defaultValue = defaultValue;
-        }
-
-        /**
-         * @return Does that parameter has arguments.
-         */
-        public boolean isHasArgs() {
-            return hasArgs;
-        }
-
-        /**
-         * @return Parameter name
-         */
-        public String getName() {
-            return name;
-        }
-
-        /**
-         * @return Parameter description
-         */
-        public String getDescr() {
-            return descr;
-        }
-
-        /**
-         * @return Parameter short name
-         */
-        public String getShortName() {
-            return shortName;
-        }
-
-        /**
-         * @return Is that parameter mandatory
-         */
-        public boolean isMandatory() {
-            return mandatory;
-        }
-
-        /**
-         * @return Parameter default value
-         */
-        public String getDefaultValue() {
-            return defaultValue;
-        }
-
-
-        @Override
-        public String toString() {
-            return "--" + getName() + " (-" + getShortName() + ")";
-        }
-    }
-
-    /**
      * Must return a list of applied parameters (i.e. all parameters except connectivity)
      * The final list of all parameters will be merged (@see {@link #getAllCmParameters()})
      *
@@ -218,7 +84,7 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
     public List<CmParameter> getAllCmParameters() {
         if (cmParameters == null) {
             cmParameters = new ArrayList<CmParameter>();
-            cmParameters.addAll(CONNECTION_PARAMETERS);
+            cmParameters.addAll(getConnectionParameters());
             cmParameters.addAll(getAppliedCmParameters());
         }
         return cmParameters;
@@ -373,5 +239,9 @@ public abstract class FnExecutor implements FnUtilRunnableParent {
             return true;
         }
         return false;
+    }
+
+    public final static List<CmParameter> getConnectionParameters(){
+        return new ArrayList<CmParameter>(CONNECTION_PARAMETERS);
     }
 }

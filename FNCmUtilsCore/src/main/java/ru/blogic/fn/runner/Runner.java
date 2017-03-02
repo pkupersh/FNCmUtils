@@ -7,10 +7,11 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.reflections.Reflections;
+import ru.blogic.fn.utils.CmParameter;
 import ru.blogic.fn.utils.FnExecutor;
 import ru.blogic.fn.utils.FnExecutorException;
-import ru.blogic.fn.utils.annotations.Utility;
+import ru.blogic.fn.utils.FnExecutorManager;
+import ru.blogic.fn.utils.InvalidParametersException;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -19,7 +20,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -45,7 +45,6 @@ public class Runner {
     private static final Option OPTION_HELP = new Option("h", "help", false, "Get help for specific utility. Use with combination with --" + OPTION_UTILITY.getLongOpt() + " option");
     private static final Options ALL_OPTIONS = new Options();
     private static final Options RUNNER_OPTIONS = new Options();
-    private static final Map<String, Class<FnExecutor>> UTILS;
     private static final CommandLineParser PARSER = new DefaultParser();
 
     private FnExecutor currentExecutor;
@@ -75,8 +74,8 @@ public class Runner {
         RUNNER_OPTIONS.addOption(OPTION_UTILITY);
         RUNNER_OPTIONS.addOption(OPTION_OPTIONSFILE);
         RUNNER_OPTIONS.addOption(OPTION_HELP);
-        UTILS = getUtilitiesCollection();
-        OPTION_UTILITY.setDescription(OPTION_UTILITY.getDescription() + " Permitted values: " + UTILS.keySet() + ". You may also provide external utility class and use it's fully qualified name as a name of utility. Value by Default is " + DEFAULT_UTILITY_NAME);
+        //UTILS = getUtilitiesCollection();
+        OPTION_UTILITY.setDescription(OPTION_UTILITY.getDescription() + " Permitted values: " + FnExecutorManager.getAvailableExecutorNames() + ". You may also provide external utility class and use it's fully qualified name as a name of utility. Value by Default is " + DEFAULT_UTILITY_NAME);
         try {
             for (Option option : getAllOptions()) {
                 ALL_OPTIONS.addOption(option);
@@ -86,12 +85,12 @@ public class Runner {
         }
     }
 
-    private static Set<Option> getAllOptions() throws InstantiationException, IllegalAccessException {
+    private static Set<Option> getAllOptions() throws InstantiationException, IllegalAccessException, ClassNotFoundException {
         Set<Option> options = new HashSet<Option>();
-        for (Class<FnExecutor> fnExecutorClass : UTILS.values()) {
-            FnExecutor theUtil = fnExecutorClass.newInstance();
-            List<FnExecutor.CmParameter> cmParameters = theUtil.getAllCmParameters();
-            for (FnExecutor.CmParameter cmParameter : cmParameters) {
+        for (String excutorName: FnExecutorManager.getAvailableExecutorNames()) {
+            FnExecutor theUtil = FnExecutorManager.getExecutorInstance(excutorName);
+            List<CmParameter> cmParameters = theUtil.getAllCmParameters();
+            for (CmParameter cmParameter : cmParameters) {
                 options.add(toOption(cmParameter));
             }
         }
@@ -152,37 +151,37 @@ public class Runner {
             }
 
 
-            Class<? extends FnExecutor> util = UTILS.get(utilityName);
-            if (util == null) {
+            FnExecutor executor;
+            try {
+                executor=FnExecutorManager.getExecutorInstance(utilityName);
+            }catch (ClassNotFoundException e){
                 //try to resolve string as a class name
                 try {
-                    util = cast2FnExecutor(Class.forName(utilityName), utilityName);
-                    if (util == null) {
+                    executor=FnExecutorManager.findFnExecutorByClassName(utilityName);
+                    if (executor == null) {
                         return;
                     }
                     //redo collecting options and command line parse here
-                    FnExecutor theUtil = util.newInstance();
-                    theUtil.setOut(out);
-                    theUtil.setErr(err);
+                    executor.setOut(out);
+                    executor.setErr(err);
 
-                    List<FnExecutor.CmParameter> cmParameters = theUtil.getAllCmParameters();
-                    for (FnExecutor.CmParameter cmParameter : cmParameters) {
+                    List<CmParameter> cmParameters = executor.getAllCmParameters();
+                    for (CmParameter cmParameter : cmParameters) {
                         ALL_OPTIONS.addOption(toOption(cmParameter));
                     }
                     try {
                         commandLine = PARSER.parse(ALL_OPTIONS, args, true);
-                    } catch (ParseException e) {
+                    } catch (ParseException pe) {
                         help("Error: Cannot parse command line: " + e.getMessage(), null, null);
                         return;
                     }
-                } catch (ClassNotFoundException e) {
+                } catch (ClassNotFoundException cnfe) {
                     help("Error: No utility '" + utilityName + "' present or found as a class.", null, null);
                     return;
                 }
             }
 
-
-            currentExecutor = util.newInstance();
+            currentExecutor = executor;
             currentExecutor.setOut(out);
             currentExecutor.setErr(err);
 
@@ -311,7 +310,7 @@ public class Runner {
         return options.toArray(new String[options.size()]);
     }
 
-    private void help(String message, String utilName, List<FnExecutor.CmParameter> cmParameters) {
+    private void help(String message, String utilName, List<CmParameter> cmParameters) {
         if (message != null) {
             err.println(message);
         }
@@ -322,14 +321,14 @@ public class Runner {
             Options options = new Options();
             options.addOption(OPTION_OPTIONSFILE);
 
-            for (FnExecutor.CmParameter cmParameter : cmParameters) {
+            for (CmParameter cmParameter : cmParameters) {
                 options.addOption(toOption(cmParameter));
             }
             formatter.printHelp(out, 80, "java -jar "+getName()+".jar --" + OPTION_UTILITY.getLongOpt() + "=" + utilName + " <options>", "Options:", options, 0, 0, "");
         }
     }
 
-    private static <E extends FnExecutor> Map<String, Class<E>> getUtilitiesCollection() {
+    /*private static <E extends FnExecutor> Map<String, Class<E>> getUtilitiesCollection() {
         //get all utilities with"@Utilities" annotation
         Map<String, Class<E>> result = new HashMap<String, Class<E>>();
 
@@ -353,9 +352,9 @@ public class Runner {
         }
 
         return result;
-    }
+    }*/
 
-    public static Option toOption(FnExecutor.CmParameter cmParameter){
+    public static Option toOption(CmParameter cmParameter){
         return new Option(cmParameter.getShortName(), cmParameter.getName(), cmParameter.isHasArgs(), cmParameter.getDescr());
     }
 
@@ -363,9 +362,9 @@ public class Runner {
 
         Options options = new Options();
         try {
-            List<FnExecutor.CmParameter> cmParameters = executor.getAllCmParameters();
-            Map<String,FnExecutor.CmParameter> cmParametersByName=new HashMap<String, FnExecutor.CmParameter>();
-            for (FnExecutor.CmParameter paramDef : cmParameters ) {
+            List<CmParameter> cmParameters = executor.getAllCmParameters();
+            Map<String,CmParameter> cmParametersByName=new HashMap<String, CmParameter>();
+            for (CmParameter paramDef : cmParameters ) {
                 options.addOption(toOption(paramDef));
                 cmParametersByName.put(paramDef.getName(),paramDef);
             }
@@ -377,12 +376,12 @@ public class Runner {
                 help(executor,options);
                 return;
             }
-            Map<FnExecutor.CmParameter, String> paramValues = new HashMap<FnExecutor.CmParameter, String>();
+            Map<CmParameter, String> paramValues = new HashMap<CmParameter, String>();
 
             Iterator<Option> iterator = parsedLine.iterator();
             while (iterator.hasNext()){
                 Option option = iterator.next();
-                FnExecutor.CmParameter cmParameter=cmParametersByName.get(option.getLongOpt());
+                CmParameter cmParameter=cmParametersByName.get(option.getLongOpt());
                 if(cmParameter !=null) {
                     paramValues.put(cmParameter,option.getValue());
                 }
@@ -391,7 +390,7 @@ public class Runner {
 
             executor.execute(paramValues);
 
-        } catch (FnExecutor.InvalidParametersException ipe) {
+        } catch (InvalidParametersException ipe) {
             ipe.printMessages(err);
             help(executor, options);
         } catch (FnExecutorException e) {
